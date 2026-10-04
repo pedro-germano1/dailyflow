@@ -1,5 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemedText } from './ThemedText';
 
 interface Props {
   title: string;
@@ -8,11 +11,13 @@ interface Props {
 }
 
 export function ScreenPlaceholder({ title, subtitle, children }: Props) {
+  const { colors } = useTheme();
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <ThemedText variant="title">{title}</ThemedText>
+        {subtitle ? <ThemedText secondary style={styles.subtitle}>{subtitle}</ThemedText> : null}
         {children}
       </View>
     </SafeAreaView>
@@ -20,8 +25,7 @@ export function ScreenPlaceholder({ title, subtitle, children }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { flex: 1, padding: 20 },
-  title: { fontSize: 28, fontWeight: '700' },
-  subtitle: { fontSize: 15, color: '#6B7280', marginTop: 4 },
+  container: { flex: 1 },
+  content: { flex: 1, padding: spacing.xl },
+  subtitle: { marginTop: spacing.xs },
 });
