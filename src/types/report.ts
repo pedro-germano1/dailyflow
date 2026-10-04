@@ -43,6 +43,14 @@ export interface WeeklyReport {
   insights: string[];
 }
 
+/**
+ * Diferenças = mês atual MENOS mês anterior, comparando MÉDIAS (não totais), porque os meses
+ * têm tamanhos e quantidades de registro diferentes:
+ * - sleepMinutesDiff: média de sono por noite.
+ * - workMinutesDiff / studyMinutesDiff: média de minutos por DIA COM ATIVIDADES.
+ * - completionRateDiff: diferença em pontos percentuais da taxa média de conclusão.
+ * Fica 0 quando um dos meses não tem dado daquela medida.
+ */
 export interface MonthlyComparison {
   sleepMinutesDiff: Minutes;
   workMinutesDiff: Minutes;
@@ -50,6 +58,13 @@ export interface MonthlyComparison {
   completionRateDiff: number;
 }
 
+/**
+ * Regras do relatório mensal:
+ * - daysRecorded = dias com pelo menos uma atividade OU um registro de sono.
+ * - bestStreak = maior sequência de dias seguidos COM registro, dentro do mês.
+ * - Totais de tempo contam só atividades concluídas; totalActivities conta todas.
+ * - averageSleepMinutes = média por noite registrada; averageCompletionRate = média das taxas diárias.
+ */
 export interface MonthlyReport {
   month: ISOMonth;
   totalSleepMinutes: Minutes;

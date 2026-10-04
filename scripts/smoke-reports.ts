@@ -121,7 +121,8 @@ async function main() {
   check('concluir uma atividade atualiza o relatório (5 de 7, 71%)', after.completedActivities === 5 && after.completionRate === 71);
   const mw = await services.reports.getWeekly(today);
   check('semana do mock tem 7 dias e começa na segunda', mw.days.length === 7 && mw.weekStart === startOfWeek(today));
-  check('mensal continua disponível (mock até a Semana 5)', (await services.reports.getMonthly('2026-10')).daysRecorded === 28);
+  const mm = await services.reports.getMonthly(today.slice(0, 7));
+  check('mensal real sobre os mocks (hoje tem registro)', mm.daysRecorded >= 1 && mm.totalActivities >= 7);
 
   console.log(`\n${passed} passaram, ${failed} falharam`);
   process.exit(failed === 0 ? 0 : 1);

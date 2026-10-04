@@ -1,4 +1,4 @@
-import { ISODate, Minutes, TimeString } from '../types/common';
+import { ISODate, ISOMonth, Minutes, TimeString } from '../types/common';
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -77,4 +77,30 @@ export function startOfWeek(date: ISODate): ISODate {
   const [y, m, d] = date.split('-').map(Number);
   const weekday = new Date(y, m - 1, d).getDay(); // 0 = domingo
   return addDays(date, -((weekday + 6) % 7));
+}
+
+const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+export function isValidMonth(value: string): boolean {
+  return MONTH_RE.test(value);
+}
+
+/** "2026-02" -> { from: "2026-02-01", to: "2026-02-28" } (considera ano bissexto). */
+export function monthRange(month: ISOMonth): { from: ISODate; to: ISODate } {
+  const [y, m] = month.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return { from: `${month}-01`, to: `${month}-${String(lastDay).padStart(2, '0')}` };
+}
+
+/** "2027-01" -> "2026-12" */
+export function previousMonth(month: ISOMonth): ISOMonth {
+  const [y, m] = month.split('-').map(Number);
+  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+}
+
+/** Quantidade de dias de `from` até `to` (to - from). */
+export function daysBetween(from: ISODate, to: ISODate): number {
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000);
 }

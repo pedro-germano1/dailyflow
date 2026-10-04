@@ -34,6 +34,9 @@ export interface GoalProgress {
   percent: number;
   daysRemaining: number;
   achieved: boolean;
-  /** Últimos 8 períodos, do mais ANTIGO ao mais recente (pronto para gráfico). */
+  /**
+   * Até 8 períodos já ENCERRADOS (o atual NÃO entra: ele está em current/percent),
+   * do mais ANTIGO ao mais recente (pronto para gráfico). Só períodos a partir de startDate.
+   */
   history: { periodStart: ISODate; value: number; achieved: boolean }[];
 }

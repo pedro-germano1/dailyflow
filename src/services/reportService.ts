@@ -1,6 +1,7 @@
-import { AppError, ISODate } from '../types/common';
+import { AppError, ISODate, ISOMonth } from '../types/common';
 import { IActivityService, IReportService, ISleepService } from '../types/services';
-import { addDays, isValidDate, startOfWeek, toISODate } from '../utils/time';
+import { addDays, isValidDate, isValidMonth, monthRange, previousMonth, startOfWeek, toISODate } from '../utils/time';
+import { computeMonthlyReport, computeMonthStats } from './monthlyCalculations';
 import { computeDailyReport, computeWeeklyReport } from './reportCalculations';
 
 /** Quantos dias anteriores entram na comparação do relatório diário. */
@@ -8,14 +9,14 @@ const HISTORY_DAYS = 7;
 
 /**
  * Depende das INTERFACES de atividade e sono (não do storage): funciona igual
- * com os services reais ou com os mocks. getMonthly entra na Semana 5.
+ * com os services reais ou com os mocks.
  * `today` é injetável para os testes serem determinísticos.
  */
 export function createReportService(
   activities: IActivityService,
   sleep: ISleepService,
   today: () => ISODate = () => toISODate(),
-): Pick<IReportService, 'getDaily' | 'getWeekly'> {
+): IReportService {
   const assertDate = (date: string) => {
     if (!isValidDate(date)) throw new AppError('VALIDATION_ERROR', 'Data inválida.', 'date');
   };
@@ -40,6 +41,22 @@ export function createReportService(
         sleep.list(weekStart, weekEnd),
       ]);
       return computeWeeklyReport(weekStart, weekActivities, sleepRecords, today());
+    },
+
+    async getMonthly(month: ISOMonth) {
+      if (!isValidMonth(month)) {
+        throw new AppError('VALIDATION_ERROR', 'Mês inválido. Use o formato AAAA-MM.', 'month');
+      }
+      const load = async (m: ISOMonth) => {
+        const { from, to } = monthRange(m);
+        const [monthActivities, sleepRecords] = await Promise.all([
+          activities.list({ from, to }),
+          sleep.list(from, to),
+        ]);
+        return computeMonthStats(monthActivities, sleepRecords);
+      };
+      const [current, previous] = await Promise.all([load(month), load(previousMonth(month))]);
+      return computeMonthlyReport(month, current, previous);
     },
   };
 }

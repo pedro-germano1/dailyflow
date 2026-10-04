@@ -14,7 +14,7 @@ UI (Pessoa 1) -> `Services` (interfaces em src/types/services.ts)
 ## Decisões de contrato (revisão do PR #1)
 1. **Notificações:** quem agenda é o service. `INotificationService` (`requestPermission`, `syncReminders`);
    `settings.updateSettings()` chama `syncReminders()` internamente. A UI nunca importa `expo-notifications`.
-2. **Metas:** o histórico vem em `GoalProgress.history` (últimos 8 períodos, do mais antigo ao mais recente).
+2. **Metas:** o histórico vem em `GoalProgress.history` (até 8 períodos ENCERRADOS, sem o atual, do mais antigo ao mais recente).
    Não existe `getHistory`.
 3. **Meia-noite:** atividade NÃO atravessa a meia-noite (`endTime > startTime`, mesmo dia). Para 23:00–01:00,
    a UI cria duas atividades. Exceção: sono (`SleepRecord`), onde `wakeTime < sleepTime` soma 24h.
@@ -68,8 +68,30 @@ Acesso somente via `StorageAdapter`. Escritas serializadas em fila (`Repository`
 - Comparação com o histórico: média dos 7 dias anteriores QUE TIVERAM registro; só comenta se o dia
   atual tem o tempo > 0 e a variação é de pelo menos 10%.
 - Semanal: segunda a domingo; médias consideram só dias com registro; `days[i].insights` vem vazio.
-- `getMonthly` entra na Semana 5 (no mock ainda devolve dados fixos).
 - Testes: `npx tsx scripts/smoke-reports.ts`.
+
+## Relatório mensal e metas (Semana 5)
+**Mensal** (`monthlyCalculations.ts`, `getMonthly('AAAA-MM')`)
+- `daysRecorded` = dias com atividade OU sono. `bestStreak` = maior sequência de dias seguidos com registro
+  DENTRO do mês (30/09 e 01/10 não se juntam).
+- Totais de tempo contam só concluídas. Taxa média de conclusão = média das taxas diárias.
+- Comparação com o mês anterior usa MÉDIAS (sono por noite; trabalho/estudo por dia com atividade),
+  não totais: meses têm tamanhos e quantidades de registro diferentes. Fica 0 se faltar dado num dos lados;
+  `comparisonWithPreviousMonth` é `null` se o mês anterior não tem nenhum registro.
+- Análise só comenta variação de 10% ou mais.
+
+**Metas** (`goalCalculations.ts` puro + `goalService.ts`)
+- Período: diária = o dia; semanal = segunda a domingo; mensal = mês do calendário.
+- Valor: `hours` = soma de horas concluídas da categoria; `count` = nº de atividades concluídas;
+  `sleepHours` = MÉDIA de horas de sono por noite no período (meta é "pelo menos X por noite").
+- Só conta a partir de `startDate` (o primeiro período pode ser parcial).
+- `percent` pode passar de 100. `achieved` = current >= target.
+- `daysRemaining` = dias depois da data de referência até o fim do período (quarta numa semana = 4).
+- `history` = até 8 períodos encerrados desde `startDate`, do mais antigo ao mais recente (o atual não entra).
+- Validações: título (<=60, sem duplicata), alvo > 0, `count` inteiro, horas <= 24/168/744 por período
+  (diária/semanal/mensal), sono <= 24h, categoria existente (exceto sono), data de início real.
+- Todo o mock agora usa os services REAIS em memória; `clearAllData` do mock limpa tudo.
+- Testes: `npx tsx scripts/smoke-monthly.ts` e `npx tsx scripts/smoke-goals.ts`.
 
 ## Git
 main <- develop <- feature/pessoa-1-ui | feature/pessoa-2-data
