@@ -7,7 +7,12 @@ export function Screen({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         {children}
       </ScrollView>
     </SafeAreaView>

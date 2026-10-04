@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { addDays, isSameDay, parseISO } from 'date-fns';
+import { addDays, isSameDay } from 'date-fns';
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityItem } from '@/components/ActivityItem';
@@ -17,6 +18,7 @@ import { formatDuration, formatLongDate, toISODate } from '@/utils/uiFormat';
 
 export default function RoutineScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const [date, setDate] = useState(() => new Date());
   const [categoryId, setCategoryId] = useState<Id | null>(null);
 
@@ -30,6 +32,9 @@ export default function RoutineScreen() {
 
   const visible = categoryId ? activities.filter((a) => a.categoryId === categoryId) : activities;
   const isToday = isSameDay(date, new Date());
+
+  const openNew = () => router.push({ pathname: '/activity-form', params: { date: isoDate } });
+  const openEdit = (id: Id) => router.push({ pathname: '/activity-form', params: { id } });
 
   return (
     <Screen>
@@ -53,6 +58,8 @@ export default function RoutineScreen() {
           <Ionicons name="chevron-forward" size={24} color={colors.text} />
         </Pressable>
       </View>
+
+      <Button label="+ Adicionar atividade" onPress={openNew} />
 
       <ScrollView
         horizontal
@@ -90,6 +97,8 @@ export default function RoutineScreen() {
               ? 'Não há atividades dessa categoria neste dia.'
               : 'Não há atividades registradas neste dia.'
           }
+          actionLabel="Adicionar atividade"
+          onAction={openNew}
         />
       )}
 
@@ -106,6 +115,7 @@ export default function RoutineScreen() {
               categoryIcon={category?.emoji ?? '📝'}
               categoryColor={category?.color ?? '#6B7280'}
               status={activity.status}
+              onPress={() => openEdit(activity.id)}
               onToggleComplete={() => toggleComplete(activity.id)}
             />
           );
@@ -121,7 +131,6 @@ const styles = StyleSheet.create({
   loader: { marginTop: spacing.xl },
   dayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   dayLabel: { alignItems: 'center', gap: 2 },
-  // Faz a lista de chips encostar nas bordas da tela, ignorando o padding da Screen
   chipsBleed: { marginHorizontal: -spacing.xl, flexGrow: 0 },
   chips: { paddingHorizontal: spacing.xl, gap: spacing.sm },
 });

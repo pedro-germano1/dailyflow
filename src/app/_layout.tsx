@@ -8,7 +8,9 @@ function RootNavigator() {
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="activity-form" options={{ presentation: 'modal' }} />
+      </Stack>
     </>
   );
 }

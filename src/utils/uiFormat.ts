@@ -31,3 +31,18 @@ export function formatLongDate(date: Date): string {
   const text = format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+
+/** "09:30" -> Date de hoje às 09:30 */
+export function timeToDate(time: string): Date {
+  const [h, m] = time.split(':').map(Number);
+  const date = new Date();
+  date.setHours(h ?? 0, m ?? 0, 0, 0);
+  return date;
+}
+
+/** "2026-10-04" -> Date local (sem deslocamento de fuso) */
+export function isoToDate(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+}
