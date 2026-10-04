@@ -3,13 +3,13 @@ import { ISODate, ISOMonth, Minutes, TimeString } from '../types/common';
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export function isValidTime(value: string): boolean {
-  return TIME_RE.test(value);
+export function isValidTime(value: unknown): value is TimeString {
+  return typeof value === 'string' && TIME_RE.test(value);
 }
 
 /** Valida formato E existência real da data (rejeita 2026-02-31). */
-export function isValidDate(value: string): boolean {
-  if (!DATE_RE.test(value)) return false;
+export function isValidDate(value: unknown): value is ISODate {
+  if (typeof value !== 'string' || !DATE_RE.test(value)) return false;
   const [y, m, d] = value.split('-').map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
@@ -81,8 +81,8 @@ export function startOfWeek(date: ISODate): ISODate {
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-export function isValidMonth(value: string): boolean {
-  return MONTH_RE.test(value);
+export function isValidMonth(value: unknown): value is ISOMonth {
+  return typeof value === 'string' && MONTH_RE.test(value);
 }
 
 /** "2026-02" -> { from: "2026-02-01", to: "2026-02-28" } (considera ano bissexto). */
@@ -103,4 +103,11 @@ export function daysBetween(from: ISODate, to: ISODate): number {
   const [fy, fm, fd] = from.split('-').map(Number);
   const [ty, tm, td] = to.split('-').map(Number);
   return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000);
+}
+
+/** "23:50" + 20 -> "00:10" | "00:10" - 30 -> "23:40" (dá a volta na meia-noite). */
+export function addMinutesToTime(time: TimeString, delta: Minutes): TimeString {
+  const total = (((timeToMinutes(time) + delta) % 1440) + 1440) % 1440;
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(Math.floor(total / 60))}:${p(total % 60)}`;
 }

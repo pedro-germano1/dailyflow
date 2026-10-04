@@ -93,6 +93,44 @@ Acesso somente via `StorageAdapter`. Escritas serializadas em fila (`Repository`
 - Todo o mock agora usa os services REAIS em memória; `clearAllData` do mock limpa tudo.
 - Testes: `npx tsx scripts/smoke-monthly.ts` e `npx tsx scripts/smoke-goals.ts`.
 
+## Notificações, configurações e revisão de erros (Semana 6)
+**Montagem dos services:** `createServices(storage, scheduler)` (`src/services/createServices.ts`) liga tudo e é usado
+pelos mocks e pelos testes. No app (Semana 8): `createServices(new AsyncStorageAdapter(), createExpoNotificationScheduler())`.
+
+**Notificações** (`notificationService.ts` + `notificationScheduler.ts`)
+- O service só conhece a interface `NotificationScheduler`. Real: `expoNotificationScheduler.ts` (expo-notifications, SDK 57,
+  gatilho diário). Falso: `src/mocks/fakeNotificationScheduler.ts` (testes e mocks). No navegador (web) tudo vira no-op.
+- `buildReminderPlan(settings)` é PURA e decide os lembretes: `enabled = false` desliga tudo;
+  **estudar** = horário fixo 19:00 (o contrato não tem horário de estudo); **registrar rotina** = `dailyReminderTime`;
+  **dormir** = 30 min ANTES de `defaultSleepTime` (00:10 -> 23:40).
+- `syncReminders()`: cancela os 3 lembretes do app (ids fixos, outras notificações não são tocadas) e reagenda os ligados.
+  NUNCA lança erro (falha vai para `onError`/console.warn). Sem permissão: não agenda e NÃO pede permissão sozinho.
+  Chamadas simultâneas rodam em fila.
+- Fluxo da UI: ao ligar os lembretes, chamar `notifications.requestPermission()`; se `true`, `settings.updateSettings(...)`
+  (que já chama `syncReminders()`). Se `false`, avisar para ativar nas configurações do celular.
+  Chamar `syncReminders()` também ao abrir o app.
+- Expo Go: notificações LOCAIS funcionam (push remoto não é usado).
+
+**Configurações e perfil** (`settingsService.ts`)
+- Padrão: tema `system`, dormir 23:30, acordar 07:00, lembretes DESLIGADOS, lembrete diário 21:00. Usuário padrão: `local-user` / "Usuário".
+- `updateSettings(patch)`: faz merge (inclusive parcial em `notifications`), valida o RESULTADO e ignora campos desconhecidos.
+  Erros usam `field` com ponto para notificações (`notifications.dailyReminderTime`). Horários padrão seguem as regras do sono
+  (não podem ser iguais, duração <= 18h). Escritas em fila.
+- `updateUser(patch)`: nome obrigatório (<= 40), avatar opcional (<= 500; `''` remove). O `id` nunca muda.
+- `exportData()`: JSON `{ app, version, exportedAt, user, settings, customCategories, activities, sleep, goals }`
+  (lido direto do armazenamento, sem filtro de data).
+- `clearAllData()`: apaga tudo (as configurações voltam ao padrão) e cancela os lembretes.
+- Dado salvo antigo ou corrompido é completado/corrigido com os padrões (`normalizeSettings`).
+
+**Revisão de validações e erros (todos os services)**
+- Regra: um service só lança `AppError`, qualquer que seja a entrada ou o estado do disco (`npx tsx scripts/smoke-errors.ts`).
+- Entrada que não é objeto ou campo com tipo errado (`title: 123`) vira `VALIDATION_ERROR` com `field`.
+- Datas passam a ser validadas também em `activities.list` (filtro), `getDatesWithRecords`, `sleep.getByDate/list/getStats`
+  (antes devolviam lista vazia para data inválida). `isValidDate/Time/Month` aceitam qualquer tipo (`unknown`).
+- `Repository` aceita uma guarda `isValid`: dado que não é lista vira `[]` e itens corrompidos são descartados na leitura
+  (a próxima gravação limpa o disco). Falha de leitura/gravação continua sendo `STORAGE_ERROR`.
+- Testes: `npx tsx scripts/smoke-notifications.ts`, `smoke-settings.ts` e `smoke-errors.ts`.
+
 ## Git
 main <- develop <- feature/pessoa-1-ui | feature/pessoa-2-data
 Commits pequenos; `git pull origin develop` antes de abrir PR.

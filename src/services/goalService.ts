@@ -7,6 +7,7 @@ import {
 import { IActivityService, ICategoryService, IGoalService, ISleepService } from '../types/services';
 import { generateId } from '../utils/id';
 import { isValidDate, toISODate } from '../utils/time';
+import { cleanText, isRecord } from '../utils/validation';
 import { buildProgress, progressRange } from './goalCalculations';
 
 const FREQUENCIES: GoalFrequency[] = ['daily', 'weekly', 'monthly'];
@@ -16,8 +17,25 @@ const MAX_HOURS: Record<GoalFrequency, number> = { daily: 24, weekly: 168, month
 
 const fail = (message: string, field: string) => new AppError('VALIDATION_ERROR', message, field);
 
+/** Descarta metas corrompidas do disco (só confere o que o código usa). */
+function isGoal(v: unknown): v is Goal {
+  return (
+    isRecord(v) &&
+    typeof v.id === 'string' &&
+    typeof v.title === 'string' &&
+    METRICS.includes(v.metric as GoalMetric) &&
+    FREQUENCIES.includes(v.frequency as GoalFrequency) &&
+    typeof v.target === 'number' &&
+    Number.isFinite(v.target) &&
+    isValidDate(v.startDate) &&
+    typeof v.active === 'boolean' &&
+    (v.categoryId === undefined || typeof v.categoryId === 'string')
+  );
+}
+
 function validate(input: CreateGoalInput, categoryIds: Set<Id>): CreateGoalInput {
-  const title = input.title?.trim() ?? '';
+  if (!isRecord(input)) throw fail('Dados da meta inválidos.', 'goal');
+  const title = cleanText(input.title);
   if (!title) throw fail('Informe o nome da meta.', 'title');
   if (title.length > 60) throw fail('O nome pode ter no máximo 60 caracteres.', 'title');
   if (!METRICS.includes(input.metric)) throw fail('Tipo de meta inválido.', 'metric');
@@ -55,7 +73,7 @@ export function createGoalService(
   categories: ICategoryService,
   today: () => ISODate = () => toISODate(),
 ): IGoalService {
-  const repo = new Repository<Goal>(storage, STORAGE_KEYS.goals);
+  const repo = new Repository<Goal>(storage, STORAGE_KEYS.goals, isGoal);
   const loadCategoryIds = async () => new Set((await categories.list()).map((c) => c.id));
 
   return {
@@ -73,6 +91,7 @@ export function createGoalService(
     },
 
     async update(id: Id, input: UpdateGoalInput): Promise<Goal> {
+      if (!isRecord(input)) throw fail('Dados da meta inválidos.', 'goal');
       const categoryIds = await loadCategoryIds();
       return repo.mutate((items) => {
         const current = items.find((g) => g.id === id);

@@ -1,7 +1,7 @@
 import { AppError, Id } from '../types/common';
 import { StorageAdapter } from './storage';
 
-const storageError = () =>
+export const storageError = () =>
   new AppError('STORAGE_ERROR', 'Não foi possível acessar os dados do aplicativo. Tente novamente.');
 
 /**
@@ -12,17 +12,25 @@ const storageError = () =>
 export class Repository<T extends { id: Id }> {
   private queue: Promise<unknown> = Promise.resolve();
 
+  /**
+   * `isValid` (opcional) descarta itens corrompidos ao LER. Dado que não é uma lista vira lista vazia.
+   * Assim um dado quebrado no disco nunca derruba o app; na próxima gravação a lista sai limpa.
+   */
   constructor(
     private storage: StorageAdapter,
     private key: string,
+    private isValid: (item: unknown) => item is T = (item): item is T =>
+      typeof item === 'object' && item !== null && typeof (item as { id?: unknown }).id === 'string',
   ) {}
 
   async getAll(): Promise<T[]> {
+    let raw: unknown;
     try {
-      return (await this.storage.getItem<T[]>(this.key)) ?? [];
+      raw = await this.storage.getItem<unknown>(this.key);
     } catch {
       throw storageError();
     }
+    return Array.isArray(raw) ? raw.filter(this.isValid) : [];
   }
 
   /**

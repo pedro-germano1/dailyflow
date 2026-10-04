@@ -11,15 +11,47 @@ import { AppError, Id, ISODate } from '../types/common';
 import { IActivityService, ICategoryService } from '../types/services';
 import { generateId } from '../utils/id';
 import { calcDuration, isValidDate, isValidTime } from '../utils/time';
+import { cleanText, isRecord } from '../utils/validation';
 
 const STATUSES: ActivityStatus[] = ['pending', 'completed', 'skipped'];
 const fail = (message: string, field: string) => new AppError('VALIDATION_ERROR', message, field);
 
 type ActivityFields = CreateActivityInput;
 
+/** Descarta registros corrompidos do disco (só confere o que o código usa). */
+function isActivity(v: unknown): v is Activity {
+  return (
+    isRecord(v) &&
+    typeof v.id === 'string' &&
+    typeof v.title === 'string' &&
+    typeof v.categoryId === 'string' &&
+    isValidDate(v.date) &&
+    isValidTime(v.startTime) &&
+    isValidTime(v.endTime) &&
+    STATUSES.includes(v.status as ActivityStatus) &&
+    typeof v.duration === 'number'
+  );
+}
+
+function assertDate(value: unknown, field: string): void {
+  if (!isValidDate(value)) throw fail('Data inválida.', field);
+}
+
+/** `undefined`/`null` = sem filtro. Datas informadas precisam existir. */
+function normalizeFilter(filter: unknown): ActivityFilter {
+  if (filter === undefined || filter === null) return {};
+  if (!isRecord(filter)) throw fail('Filtro inválido.', 'filter');
+  const f = filter as ActivityFilter;
+  if (f.date !== undefined) assertDate(f.date, 'date');
+  if (f.from !== undefined) assertDate(f.from, 'from');
+  if (f.to !== undefined) assertDate(f.to, 'to');
+  return f;
+}
+
 /** Valida e normaliza (trim) os campos. Lança AppError com mensagem amigável. */
 function validate(input: ActivityFields, categoryIds: Set<Id>): ActivityFields {
-  const title = input.title?.trim() ?? '';
+  if (!isRecord(input)) throw fail('Dados da atividade inválidos.', 'activity');
+  const title = cleanText(input.title);
   if (!title) throw fail('Informe o nome da atividade.', 'title');
   if (title.length > 60) throw fail('O nome pode ter no máximo 60 caracteres.', 'title');
 
@@ -32,6 +64,9 @@ function validate(input: ActivityFields, categoryIds: Set<Id>): ActivityFields {
   }
   if (!STATUSES.includes(input.status)) throw fail('Status inválido.', 'status');
 
+  if (input.notes !== undefined && input.notes !== null && typeof input.notes !== 'string') {
+    throw fail('Observação inválida.', 'notes');
+  }
   const notes = input.notes?.trim();
   if (notes && notes.length > 300) throw fail('A observação pode ter no máximo 300 caracteres.', 'notes');
 
@@ -67,12 +102,13 @@ export function createActivityService(
   storage: StorageAdapter,
   categories: ICategoryService,
 ): IActivityService {
-  const repo = new Repository<Activity>(storage, STORAGE_KEYS.activities);
+  const repo = new Repository<Activity>(storage, STORAGE_KEYS.activities, isActivity);
   const loadCategoryIds = async () => new Set((await categories.list()).map((c) => c.id));
 
   return {
-    async list(filter: ActivityFilter = {}): Promise<Activity[]> {
-      return (await repo.getAll()).filter((a) => matches(a, filter)).sort(byDateAndTime);
+    async list(filter?: ActivityFilter): Promise<Activity[]> {
+      const f = normalizeFilter(filter);
+      return (await repo.getAll()).filter((a) => matches(a, f)).sort(byDateAndTime);
     },
 
     async getById(id: Id): Promise<Activity> {
@@ -98,6 +134,7 @@ export function createActivityService(
     },
 
     async update(id: Id, input: UpdateActivityInput): Promise<Activity> {
+      if (!isRecord(input)) throw fail('Dados da atividade inválidos.', 'activity');
       const categoryIds = await loadCategoryIds();
       return repo.mutate((items) => {
         const current = items.find((a) => a.id === id);
@@ -138,6 +175,8 @@ export function createActivityService(
     },
 
     async getDatesWithRecords(from: ISODate, to: ISODate): Promise<ISODate[]> {
+      assertDate(from, 'from');
+      assertDate(to, 'to');
       const dates = (await repo.getAll())
         .filter((a) => a.date >= from && a.date <= to)
         .map((a) => a.date);

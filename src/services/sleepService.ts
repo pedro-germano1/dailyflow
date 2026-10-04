@@ -7,13 +7,31 @@ import { generateId } from '../utils/id';
 import {
   calcSleepDuration, isValidDate, isValidTime, MAX_SLEEP_MINUTES, sleepTimeScale,
 } from '../utils/time';
+import { isRecord } from '../utils/validation';
 
 const fail = (message: string, field: string) => new AppError('VALIDATION_ERROR', message, field);
 
 /** Desvio padrão que zera o score de regularidade (2 horas). */
 const IRREGULAR_STD_MINUTES = 120;
 
+/** Descarta registros corrompidos do disco (só confere o que o código usa). */
+function isSleepRecord(v: unknown): v is SleepRecord {
+  return (
+    isRecord(v) &&
+    typeof v.id === 'string' &&
+    isValidDate(v.date) &&
+    isValidTime(v.sleepTime) &&
+    isValidTime(v.wakeTime) &&
+    typeof v.duration === 'number'
+  );
+}
+
+function assertDate(value: unknown, field: string): void {
+  if (!isValidDate(value)) throw fail('Data inválida.', field);
+}
+
 function validate(input: SaveSleepInput): number {
+  if (!isRecord(input)) throw fail('Dados do sono inválidos.', 'sleep');
   if (!isValidDate(input.date ?? '')) throw fail('Data inválida.', 'date');
   if (!isValidTime(input.sleepTime ?? '')) throw fail('Horário de dormir inválido.', 'sleepTime');
   if (!isValidTime(input.wakeTime ?? '')) throw fail('Horário de acordar inválido.', 'wakeTime');
@@ -63,17 +81,20 @@ export function computeSleepStats(records: SleepRecord[]): SleepStats {
 
 /** Um registro por data (data = dia em que acordou). Salvar de novo na mesma data substitui. */
 export function createSleepService(storage: StorageAdapter): ISleepService {
-  const repo = new Repository<SleepRecord>(storage, STORAGE_KEYS.sleep);
+  const repo = new Repository<SleepRecord>(storage, STORAGE_KEYS.sleep, isSleepRecord);
 
   const inRange = (records: SleepRecord[], from: ISODate, to: ISODate) =>
     records.filter((r) => r.date >= from && r.date <= to).sort((a, b) => a.date.localeCompare(b.date));
 
   return {
     async getByDate(date: ISODate): Promise<SleepRecord | null> {
+      assertDate(date, 'date');
       return (await repo.getAll()).find((r) => r.date === date) ?? null;
     },
 
     async list(from: ISODate, to: ISODate): Promise<SleepRecord[]> {
+      assertDate(from, 'from');
+      assertDate(to, 'to');
       return inRange(await repo.getAll(), from, to);
     },
 
@@ -103,6 +124,8 @@ export function createSleepService(storage: StorageAdapter): ISleepService {
     },
 
     async getStats(from: ISODate, to: ISODate): Promise<SleepStats> {
+      assertDate(from, 'from');
+      assertDate(to, 'to');
       return computeSleepStats(inRange(await repo.getAll(), from, to));
     },
   };
