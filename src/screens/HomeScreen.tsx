@@ -1,11 +1,11 @@
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ProgressBar } from '@/components/ProgressBar';
 import { Screen } from '@/components/Screen';
 import { StatCard } from '@/components/StatCard';
 import { ThemedText } from '@/components/ThemedText';
-import { radius, spacing } from '@/constants/theme';
-import { useTheme } from '@/contexts/ThemeContext';
+import { spacing } from '@/constants/theme';
 import { useDashboard, type DashboardData } from '@/hooks/useDashboard';
 import { formatDuration, formatLongDate, greeting } from '@/utils/uiFormat';
 
@@ -19,14 +19,11 @@ function TimeBlock({ label, value }: { label: string; value: string }) {
 }
 
 function ErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
-  const { colors } = useTheme();
   return (
     <Card style={styles.gap}>
       <ThemedText variant="subheading">Algo deu errado</ThemedText>
       <ThemedText secondary>{message}</ThemedText>
-      <Pressable onPress={onRetry} style={[styles.button, { backgroundColor: colors.primary }]}>
-        <ThemedText variant="label" style={{ color: colors.onPrimary }}>Tentar novamente</ThemedText>
-      </Pressable>
+      <Button label="Tentar novamente" onPress={onRetry} />
     </Card>
   );
 }
@@ -114,10 +111,4 @@ const styles = StyleSheet.create({
   timeBlock: { gap: spacing.xs },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   loader: { marginTop: spacing.xxl },
-  button: {
-    alignSelf: 'flex-start',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.pill,
-  },
 });
