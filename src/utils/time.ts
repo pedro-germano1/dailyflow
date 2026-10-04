@@ -71,3 +71,10 @@ export function formatDuration(totalMinutes: Minutes): string {
   if (h > 0) return `${h}h`;
   return `${m}min`;
 }
+
+/** Segunda-feira da semana de uma data (semana = segunda a domingo). */
+export function startOfWeek(date: ISODate): ISODate {
+  const [y, m, d] = date.split('-').map(Number);
+  const weekday = new Date(y, m - 1, d).getDay(); // 0 = domingo
+  return addDays(date, -((weekday + 6) % 7));
+}

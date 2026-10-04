@@ -28,7 +28,7 @@ function act(
   };
 }
 
-export const mockActivities: Activity[] = [
+const recentActivities: Activity[] = [
   // Hoje
   act('a1', 'Café da manhã', 'cat-food', 0, '08:00', '08:30', 'completed'),
   act('a2', 'Trabalho', 'cat-work', 0, '09:00', '12:00', 'completed', 'Reunião de planejamento'),
@@ -46,6 +46,18 @@ export const mockActivities: Activity[] = [
   act('a12', 'Estudo', 'cat-study', -2, '19:30', '21:30', 'completed'),
   act('a13', 'Academia', 'cat-exercise', -2, '18:30', '19:30', 'completed'),
 ];
+
+// Histórico dos 11 dias anteriores (para gráficos semanais/mensais não ficarem vazios).
+const olderActivities: Activity[] = [];
+for (let n = 3; n <= 13; n++) {
+  olderActivities.push(act(`h${n}w`, 'Trabalho', 'cat-work', -n, '09:00', '17:00', 'completed'));
+  olderActivities.push(
+    act(`h${n}s`, 'Estudo', 'cat-study', -n, '19:00', n % 2 === 0 ? '21:00' : '20:00', n % 5 === 0 ? 'skipped' : 'completed'),
+  );
+  if (n % 2 === 1) olderActivities.push(act(`h${n}e`, 'Academia', 'cat-exercise', -n, '18:00', '19:00', 'completed'));
+}
+
+export const mockActivities: Activity[] = [...recentActivities, ...olderActivities];
 
 const sleep = (offset: number, sleepTime: string, wakeTime: string, duration: number): SleepRecord => ({
   id: `s${-offset}`, date: addDays(today(), offset), sleepTime, wakeTime, duration,

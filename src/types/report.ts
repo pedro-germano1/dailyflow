@@ -1,5 +1,12 @@
 import { ISODate, ISOMonth, Minutes } from './common';
 
+/**
+ * Regras do relatório diário:
+ * - Os totais de minutos (trabalho, estudo, exercício, lazer) contam SÓ atividades concluídas.
+ * - pendingActivities = atividades NÃO concluídas (pendentes + puladas).
+ * - completionRate = concluídas / total (0 se não houver atividades).
+ * - sleepMinutes vem do SleepRecord com `date` = este dia (noite que terminou nele).
+ */
 export interface DailyReport {
   date: ISODate;
   wakeTime?: string;
@@ -18,6 +25,12 @@ export interface DailyReport {
   insights: string[];
 }
 
+/**
+ * Regras do relatório semanal (segunda a domingo):
+ * - `days` traz 7 DailyReport; o `insights` de cada dia vem vazio (use o do getDaily).
+ * - Médias consideram só os dias COM registro (um dia em branco não puxa a média para baixo).
+ * - averageActivitiesPerDay tem 1 casa decimal.
+ */
 export interface WeeklyReport {
   weekStart: ISODate; // segunda-feira
   weekEnd: ISODate; // domingo

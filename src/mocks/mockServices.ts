@@ -4,7 +4,8 @@
  * - Atividades e categorias usam o CRUD REAL sobre um adapter em MEMÓRIA
  *   (criar/editar/excluir funcionam nas telas; os dados somem ao fechar o app).
  * - Sono também usa o service REAL (cálculo de duração e estatísticas funcionam).
- * - Relatórios, metas e configurações devolvem dados fixos/simples.
+ * - Relatórios diário e semanal usam o service REAL (calculam em cima das atividades e do sono).
+ * - Relatório mensal, metas e configurações devolvem dados fixos/simples.
  *
  * Uso:  const services = createMockServices();
  */
@@ -12,6 +13,7 @@ import { MemoryStorageAdapter } from '../database/memoryStorageAdapter';
 import { STORAGE_KEYS } from '../database/storage';
 import { createActivityService } from '../services/activityService';
 import { createCategoryService } from '../services/categoryService';
+import { createReportService } from '../services/reportService';
 import { createSleepService } from '../services/sleepService';
 import { AppError } from '../types/common';
 import { Goal } from '../types/goal';
@@ -19,8 +21,7 @@ import { Services } from '../types/services';
 import { Settings, User } from '../types/settings';
 import { generateId } from '../utils/id';
 import {
-  buildMockMonthlyReport, buildMockWeeklyReport, mockActivities, mockDailyReport,
-  mockGoals, mockSettings, mockSleepData, mockUser,
+  buildMockMonthlyReport, mockActivities, mockGoals, mockSettings, mockSleepData, mockUser,
 } from './mockData';
 
 export function createMockServices(): Services {
@@ -31,6 +32,7 @@ export function createMockServices(): Services {
   const categories = createCategoryService(storage);
   const activities = createActivityService(storage, categories);
   const sleep = createSleepService(storage);
+  const reports = createReportService(activities, sleep);
 
   let goals: Goal[] = [...mockGoals];
   let settings: Settings = { ...mockSettings };
@@ -43,14 +45,9 @@ export function createMockServices(): Services {
     sleep,
 
     reports: {
-      async getDaily(date) {
-        return { ...mockDailyReport, date };
-      },
-      async getWeekly(weekStart) {
-        return buildMockWeeklyReport(weekStart);
-      },
+      ...reports,
       async getMonthly(month) {
-        return buildMockMonthlyReport(month);
+        return buildMockMonthlyReport(month); // service real na Semana 5
       },
     },
 
