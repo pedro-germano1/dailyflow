@@ -55,6 +55,22 @@ Acesso somente via `StorageAdapter`. Escritas serializadas em fila (`Repository`
 - O mock de sono agora usa o `sleepService` REAL sobre dados em memória.
 - Testes: `npx tsx scripts/smoke-sleep.ts`.
 
+## Relatórios diário e semanal (Semana 4)
+- `reportCalculations.ts` tem as funções PURAS (sem storage); `reportService.ts` só busca os dados e chama
+  os cálculos. O service depende de `IActivityService` e `ISleepService`, não do storage.
+- **Só atividades CONCLUÍDAS contam tempo** (trabalho, estudo, exercício, lazer). Pendente e pulada não contam.
+- `pendingActivities` = não concluídas (pendentes + puladas). `completionRate` = concluídas / total.
+- Categorias usadas nos totais: `cat-work`, `cat-study`, `cat-exercise`, `cat-leisure`.
+  Categorias personalizadas entram nos totais de atividades, mas não nesses quatro tempos.
+- Sono do dia = `SleepRecord` com `date` = o dia (noite que terminou nele).
+- Análise automática: cada frase vem de um dado real. Sem dado, a frase não aparece
+  (dia vazio: "Ainda não há registros neste dia.").
+- Comparação com o histórico: média dos 7 dias anteriores QUE TIVERAM registro; só comenta se o dia
+  atual tem o tempo > 0 e a variação é de pelo menos 10%.
+- Semanal: segunda a domingo; médias consideram só dias com registro; `days[i].insights` vem vazio.
+- `getMonthly` entra na Semana 5 (no mock ainda devolve dados fixos).
+- Testes: `npx tsx scripts/smoke-reports.ts`.
+
 ## Git
 main <- develop <- feature/pessoa-1-ui | feature/pessoa-2-data
 Commits pequenos; `git pull origin develop` antes de abrir PR.
