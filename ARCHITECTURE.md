@@ -42,6 +42,19 @@ Acesso somente via `StorageAdapter`. Escritas serializadas em fila (`Repository`
 - Mocks para a UI: `createMockServices()` em `src/mocks/mockServices.ts`.
 - Teste rápido da lógica: `npx tsx scripts/smoke-activity.ts`.
 
+## Sono e cálculos de duração (Semana 3)
+- `calcSleepDuration(dormir, acordar)`: se acordar <= dormir, soma 24h (23:45 -> 07:20 = 455 min).
+  Horários iguais = inválido; duração acima de 18h = inválida (`MAX_SLEEP_MINUTES`, ajustável).
+- Um registro por data (dia em que acordou). Salvar de novo na mesma data SUBSTITUI o registro.
+- `getStats(from, to)`: use o intervalo da semana ou do mês para as médias semanal e mensal.
+  Melhor dia = maior duração; menor sono = menor duração (empate vale o dia mais antigo).
+- Regularidade: desvio padrão do horário de dormir numa escala contínua (23:50 e 00:10 ficam
+  a 20 min, não a ~23h). Score = 100 - (desvio / 120min * 100), limitado a 0-100.
+  Com menos de 2 registros o score vem 0 e a UI mostra "—" (`recordsCount < 2`).
+- `formatDuration(min)` -> "7h 35min", usado nos textos de análise dos relatórios.
+- O mock de sono agora usa o `sleepService` REAL sobre dados em memória.
+- Testes: `npx tsx scripts/smoke-sleep.ts`.
+
 ## Git
 main <- develop <- feature/pessoa-1-ui | feature/pessoa-2-data
 Commits pequenos; `git pull origin develop` antes de abrir PR.
