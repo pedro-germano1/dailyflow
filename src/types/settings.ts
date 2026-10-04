@@ -1,18 +1,21 @@
-import { ID, TimeString } from './common';
+import { Id, TimeString } from './common';
+
+export interface User {
+  id: Id;
+  name: string;
+  /** URI local da imagem ou emoji. */
+  avatar?: string;
+}
 
 export type ThemeMode = 'light' | 'dark' | 'system';
-
-export interface UserProfile {
-  id: ID;
-  name: string;
-  avatarUri?: string;
-}
 
 export interface NotificationSettings {
   enabled: boolean;
   studyReminder: boolean;
-  dailyLogReminder: boolean;
+  logRoutineReminder: boolean;
   sleepReminder: boolean;
+  /** Horário do lembrete diário de registro. */
+  dailyReminderTime: TimeString;
 }
 
 export interface Settings {

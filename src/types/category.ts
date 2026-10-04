@@ -1,9 +1,13 @@
-import { ID } from './common';
+import { Id } from './common';
 
 export interface Category {
-  id: ID;
+  id: Id;
   name: string;
-  icon: string; // emoji, ex: '💼'
-  color: string; // hex, ex: '#4F8EF7'
-  isCustom: boolean;
+  emoji: string;
+  /** Cor em hex, ex.: "#6C63FF" */
+  color: string;
+  /** true = categoria padrão do app (não pode ser excluída). */
+  isDefault: boolean;
 }
+
+export type CreateCategoryInput = Omit<Category, 'id' | 'isDefault'>;
