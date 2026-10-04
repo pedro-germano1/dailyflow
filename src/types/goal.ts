@@ -1,31 +1,39 @@
-import { ID, ISODate } from './common';
+import { Id, ISODate } from './common';
 
 export type GoalFrequency = 'daily' | 'weekly' | 'monthly';
-export type GoalUnit = 'minutes' | 'times';
+
+/**
+ * hours      -> soma de horas de uma categoria (ex.: estudar 2h/dia)
+ * count      -> nº de atividades concluídas (ex.: treinar 4x/semana)
+ * sleepHours -> horas de sono (ex.: dormir >= 7h)
+ */
+export type GoalMetric = 'hours' | 'count' | 'sleepHours';
 
 export interface Goal {
-  id: ID;
+  id: Id;
   title: string;
-  categoryId: ID | null;
+  /** Obrigatório quando metric = 'hours' ou 'count'. */
+  categoryId?: Id;
+  metric: GoalMetric;
+  /** Valor alvo por período (horas ou quantidade). */
   target: number;
-  unit: GoalUnit;
   frequency: GoalFrequency;
-  createdAt: ISODate;
+  startDate: ISODate;
+  active: boolean;
 }
 
-export type NewGoal = Omit<Goal, 'id' | 'createdAt'>;
+export type CreateGoalInput = Omit<Goal, 'id' | 'active'>;
+export type UpdateGoalInput = Partial<CreateGoalInput & { active: boolean }>;
 
+/** Progresso é DERIVADO dos registros; não é salvo no banco. */
 export interface GoalProgress {
-  goal: Goal;
+  goalId: Id;
   current: number;
-  percent: number; // 0-100
-  daysLeft: number;
-}
-
-export interface GoalHistoryEntry {
-  periodStart: ISODate;
-  periodEnd: ISODate;
-  achieved: number;
   target: number;
-  completed: boolean;
+  /** 0-100+ (pode passar de 100). */
+  percent: number;
+  daysRemaining: number;
+  achieved: boolean;
+  /** Últimos 8 períodos, do mais ANTIGO ao mais recente (pronto para gráfico). */
+  history: { periodStart: ISODate; value: number; achieved: boolean }[];
 }
