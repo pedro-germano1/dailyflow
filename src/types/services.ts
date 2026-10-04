@@ -32,6 +32,10 @@ export interface ISleepService {
 
 export interface IReportService {
   getDaily(date: ISODate): Promise<DailyReport>;
+  /**
+   * A semana vai de SEGUNDA a DOMINGO. Aceita qualquer data da semana:
+   * o service normaliza para a segunda-feira (WeeklyReport.weekStart).
+   */
   getWeekly(weekStart: ISODate): Promise<WeeklyReport>;
   getMonthly(month: ISOMonth): Promise<MonthlyReport>;
 }
@@ -41,6 +45,7 @@ export interface IGoalService {
   create(input: CreateGoalInput): Promise<Goal>;
   update(id: Id, input: UpdateGoalInput): Promise<Goal>;
   remove(id: Id): Promise<void>;
+  /** Inclui o histórico por período em `GoalProgress.history` (não há getHistory separado). */
   getProgress(id: Id, referenceDate?: ISODate): Promise<GoalProgress>;
 }
 
@@ -59,6 +64,18 @@ export interface ISettingsService {
   clearAllData(): Promise<void>;
 }
 
+/**
+ * Notificações locais. Quem AGENDA é o service; a UI nunca chama expo-notifications.
+ * `ISettingsService.updateSettings()` chama `syncReminders()` internamente, então a UI só
+ * precisa pedir permissão na primeira vez que o usuário ativa um lembrete.
+ */
+export interface INotificationService {
+  /** true = permissão concedida. */
+  requestPermission(): Promise<boolean>;
+  /** Cancela e reagenda todos os lembretes conforme as configurações atuais. */
+  syncReminders(): Promise<void>;
+}
+
 /** Ponto único de acesso para a UI (injetado via Context). */
 export interface Services {
   activities: IActivityService;
@@ -67,4 +84,5 @@ export interface Services {
   goals: IGoalService;
   categories: ICategoryService;
   settings: ISettingsService;
+  notifications: INotificationService;
 }

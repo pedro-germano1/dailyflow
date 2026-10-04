@@ -111,6 +111,13 @@ export function createMockServices(): Services {
       },
     },
 
+    notifications: {
+      async requestPermission() {
+        return true;
+      },
+      async syncReminders() {},
+    },
+
     settings: {
       async getSettings() {
         return settings;
